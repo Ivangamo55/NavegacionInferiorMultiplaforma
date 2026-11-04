@@ -14,7 +14,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun FavoritesRoute(
-    viewModel: FavoritesViewModel = viewModel()
+    //viewModel: FavoritesViewModel = viewModel()
+    viewModel: FavoritesViewModel = viewModel { FavoritesViewModel() }
 ) {
 
     val uiState by

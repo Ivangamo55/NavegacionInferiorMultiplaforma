@@ -16,7 +16,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun HomeRoute(
-    viewModel: HomeViewModel = viewModel()
+    //viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel { HomeViewModel() }
 ) {
 
     val uiState by

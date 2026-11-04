@@ -14,7 +14,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 
 @Composable
-fun ProfileRoute(viewModel: ProfileViewModel = viewModel()) {
+//fun ProfileRoute(viewModel: ProfileViewModel = viewModel()) {
+fun ProfileRoute(viewModel: ProfileViewModel = viewModel { ProfileViewModel() }){
 val iuState by  viewModel.uiState.collectAsStateWithLifecycle()
 
     ProfileScreen(uiState = iuState)
