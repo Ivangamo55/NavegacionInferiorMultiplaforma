@@ -155,7 +155,7 @@ fun AppNavigation() {
                                 AppDestination.Profile -> Text("●")
                                 // No se muestra en la barra, pero el when debe
                                 // contemplar todos los tipos de AppDestination.
-                                is AppDestination.FavoriteDetail -> Text("•")
+                                else -> Unit
                             }
                         },
                         label = {
@@ -164,7 +164,7 @@ fun AppNavigation() {
                                     AppDestination.Home -> "Inicio"
                                     AppDestination.Favorites -> "Favoritos"
                                     AppDestination.Profile -> "Perfil"
-                                    is AppDestination.FavoriteDetail -> "Detalle"
+                                    else -> ""
                                 }
                             )
                         }
