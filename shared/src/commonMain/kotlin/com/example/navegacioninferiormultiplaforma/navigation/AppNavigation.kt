@@ -1,11 +1,6 @@
 package com.example.navegacioninferiormultiplaforma.navigation
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -24,125 +19,126 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
+import com.example.navegacioninferiormultiplaforma.ui.favorites.FavoritesRoute
+import com.example.navegacioninferiormultiplaforma.ui.favorites.detail.FavoriteDetailRoute
+import com.example.navegacioninferiormultiplaforma.ui.home.HomeRoute
+import com.example.navegacioninferiormultiplaforma.ui.profile.ProfileRoute
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
-// Importas las que están en tu paquete:
-import com.example.navegacioninferiormultiplaforma.ui.favorites.FavoritesRoute
-import com.example.navegacioninferiormultiplaforma.ui.home.HomeRoute
-import com.example.navegacioninferiormultiplaforma.ui.profile.ProfileRoute
 
-private val savedStateConfig = SavedStateConfiguration {
+private val navigationConfig = SavedStateConfiguration {
     serializersModule = SerializersModule {
         polymorphic(NavKey::class) {
-            subclass(AppDestination.Home::class)
-            subclass(AppDestination.Favorites::class)
-            subclass(AppDestination.Profile::class)
+            subclass(AppDestination.Home.serializer())
+            subclass(AppDestination.Favorites.serializer())
+            subclass(AppDestination.FavoriteDetail.serializer())
+            subclass(AppDestination.Profile.serializer())
         }
     }
 }
 
 @Composable
 fun AppNavigation() {
-//1. Destinos principales de la aplicación
-    val destinations: List<AppDestination> = listOf(
+    // Los tres destinos de la barra inferior. FavoriteDetail NO es una pestaña.
+    val destinations = listOf(
         AppDestination.Home,
         AppDestination.Favorites,
         AppDestination.Profile
     )
-// 2. Destino seleccionado en la NavigationBar
+
     var selectedIndex by rememberSaveable {
         mutableIntStateOf(0)
     }
-//3. Una pila independiente para cada destino principal
-    val homeBackStack =
-        rememberNavBackStack(savedStateConfig, AppDestination.Home)
-    val favoritesBackStack =
-        rememberNavBackStack(savedStateConfig, AppDestination.Favorites)
-    val profileBackStack =
-        rememberNavBackStack(savedStateConfig, AppDestination.Profile)
-// 4. EntryProvider, Define qué pantalla corresponde a cada AppDestination.
+
+    // Una pila independiente para cada pestaña principal.
+    val homeBackStack = rememberNavBackStack(
+        navigationConfig,
+        AppDestination.Home
+    )
+    val favoritesBackStack = rememberNavBackStack(
+        navigationConfig,
+        AppDestination.Favorites
+    )
+    val profileBackStack = rememberNavBackStack(
+        navigationConfig,
+        AppDestination.Profile
+    )
+
+    // Define qué pantalla corresponde a cada destino, incluido el detalle.
     val appEntryProvider = entryProvider<NavKey> {
         entry<AppDestination.Home> {
             HomeRoute()
         }
 
         entry<AppDestination.Favorites> {
-            FavoritesRoute()
+            FavoritesRoute(
+                onFavoriteClick = { favoriteId ->
+                    favoritesBackStack.add(
+                        AppDestination.FavoriteDetail(
+                            favoriteId = favoriteId
+                        )
+                    )
+                }
+            )
         }
+
+        entry<AppDestination.FavoriteDetail> { destination ->
+            FavoriteDetailRoute(
+                favoriteId = destination.favoriteId,
+                onBack = {
+                    if (favoritesBackStack.size > 1) {
+                        favoritesBackStack.removeLastOrNull()
+                    }
+                }
+            )
+        }
+
         entry<AppDestination.Profile> {
             ProfileRoute()
         }
     }
-// 5.Decorar CADA back stack, cada pila mantiene SaveableStateHolder
-// y ViewModelStore aunque temporalmente no sea la pila visible.
-    /*
-    * HOME
-    */
-    val homeEntries =
-        rememberDecoratedNavEntries(
-            backStack = homeBackStack,
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator()
-            ),
-            entryProvider = appEntryProvider
-        )
-    /*
-    * FAVORITES
-    */
-    val favoritesEntries =
-        rememberDecoratedNavEntries(
-            backStack = favoritesBackStack,
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator()
-            ),
-            entryProvider = appEntryProvider
-        )
-    /*
-    * PROFILE
-    */
-    val profileEntries =
-        rememberDecoratedNavEntries(
-            backStack = profileBackStack,
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator()
 
-            ),
-            entryProvider = appEntryProvider
-        )
-// 6. Determinar qué pila está activa
-    val currentBackStack =
-        when (selectedIndex) {
-            0 -> homeBackStack
-            1 -> favoritesBackStack
-            else -> profileBackStack
-        }
-//7. Obtener las entradas decoradas de la pila activa
-    val currentEntries =
-        when (selectedIndex) {
-            0 -> homeEntries
-            1 -> favoritesEntries
-            else -> profileEntries
-        }
-//8. Comportamiento del botón Back
-    /* * Por ahora nuestras tres pilas sólo contienen su
-    * pantalla principal.
-    *
-    * Si estamos en Favoritos o Perfil y pulsamos Back,
-    * regresamos a Inicio.
-    *
-    */
-    BackHandler(
-        enabled =
-            selectedIndex != 0 &&
-                currentBackStack.size == 1
-    ) {
-        selectedIndex = 0
+    // Decorar cada pila por separado conserva el estado y los ViewModels.
+    val homeEntries = rememberDecoratedNavEntries(
+        backStack = homeBackStack,
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()
+        ),
+        entryProvider = appEntryProvider
+    )
+
+    val favoritesEntries = rememberDecoratedNavEntries(
+        backStack = favoritesBackStack,
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()
+        ),
+        entryProvider = appEntryProvider
+    )
+
+    val profileEntries = rememberDecoratedNavEntries(
+        backStack = profileBackStack,
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()
+        ),
+        entryProvider = appEntryProvider
+    )
+
+    val currentBackStack = when (selectedIndex) {
+        0 -> homeBackStack
+        1 -> favoritesBackStack
+        else -> profileBackStack
     }
-// 9. Interfaz principal
+
+    val currentEntries = when (selectedIndex) {
+        0 -> homeEntries
+        1 -> favoritesEntries
+        else -> profileEntries
+    }
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -153,37 +149,22 @@ fun AppNavigation() {
                             selectedIndex = index
                         },
                         icon = {
-
                             when (destination) {
-                                AppDestination.Home -> {
-                                    Icon(
-                                        imageVector = Icons.Default.Home,
-                                        contentDescription = "Inicio"
-                                    )
-                                }
-                                AppDestination.Favorites -> {
-                                    Icon(
-                                        imageVector = Icons.Default.Favorite,
-                                        contentDescription = "Favoritos"
-                                    )
-                                }
-                                AppDestination.Profile -> {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = "Perfil"
-                                    )
-                                }
+                                AppDestination.Home -> Text("⌂")
+                                AppDestination.Favorites -> Text("♥")
+                                AppDestination.Profile -> Text("●")
+                                // No se muestra en la barra, pero el when debe
+                                // contemplar todos los tipos de AppDestination.
+                                is AppDestination.FavoriteDetail -> Text("•")
                             }
                         },
                         label = {
                             Text(
                                 text = when (destination) {
-                                    AppDestination.Home ->
-                                        "Inicio"
-                                    AppDestination.Favorites ->
-                                        "Favoritos"
-                                    AppDestination.Profile ->
-                                        "Perfil"
+                                    AppDestination.Home -> "Inicio"
+                                    AppDestination.Favorites -> "Favoritos"
+                                    AppDestination.Profile -> "Perfil"
+                                    is AppDestination.FavoriteDetail -> "Detalle"
                                 }
                             )
                         }
@@ -192,7 +173,6 @@ fun AppNavigation() {
             }
         }
     ) { innerPadding ->
-//10. Mostrar las entradas de la pila activa
         NavDisplay(
             entries = currentEntries,
             onBack = {
@@ -202,8 +182,7 @@ fun AppNavigation() {
                     selectedIndex = 0
                 }
             },
-            modifier =
-                Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding)
         )
     }
 }

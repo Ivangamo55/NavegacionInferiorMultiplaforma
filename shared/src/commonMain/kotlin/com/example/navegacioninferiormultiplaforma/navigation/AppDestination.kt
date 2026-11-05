@@ -13,5 +13,10 @@ sealed interface AppDestination : NavKey {
     data object Favorites : AppDestination
 
     @Serializable
+    data class FavoriteDetail(
+        val favoriteId: Int
+    ) : AppDestination
+
+    @Serializable
     data object Profile : AppDestination
 }
